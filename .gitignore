@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Generated experiment figures (run the scripts to regenerate)
+experiments/*.png
+
+# Virtual environments
+.venv/
+venv/
+env/

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ShuffleLab — play against the optimal card-guessing algorithm</title>
+<style>
+  :root {
+    --bg: #0f1320; --panel: #1a2032; --ink: #e8ecf5; --muted: #9aa6c0;
+    --accent: #6ea8fe; --good: #4ade80; --bad: #f87171; --bar: #6ea8fe;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.45; padding: 24px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
+  .card-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .pcard {
+    width: 38px; height: 54px; border-radius: 6px; display: flex; align-items: center;
+    justify-content: center; font-weight: 600; background: #2a3350; border: 1px solid #3a4670;
+  }
+  .pcard.up { background: #244a36; border-color: #2f7d4f; }
+  .pcard.down { background: #4a2a2a; border-color: #7d2f2f; }
+  .pcard.peak { background: #4a3f24; border-color: #b9912f; }
+  .panel { background: var(--panel); border: 1px solid #2a3350; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  label { display: inline-block; margin-right: 10px; font-size: 0.85rem; color: var(--muted); }
+  input[type=number], input[type=text] { padding: 4px 6px; border-radius: 6px; border: 1px solid #3a4670; background: #11162a; color: var(--ink); }
+  input[type=number] { width: 80px; }
+  button { background: var(--accent); color: #0b1020; border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+  button.ghost { background: #2a3350; color: var(--ink); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .big { font-size: 1.4rem; font-weight: 800; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 280px; }
+  .bar { background: var(--bar); height: 18px; border-radius: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .bar-label { width: 42px; text-align: right; }
+  .bar-pct { width: 56px; color: var(--muted); }
+  .score { font-size: 1.1rem; }
+  .good { color: var(--good); } .bad { color: var(--bad); }
+  code { background: #11162a; padding: 1px 5px; border-radius: 4px; }
+  .cite { font-size: 0.78rem; color: var(--muted); margin-top: 30px; border-top: 1px solid #2a3350; padding-top: 12px; }
+  .hint { font-size: 0.8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1>ShuffleLab — single-shelf shuffle guessing game</h1>
+  <div class="sub">
+    Play against the mathematically optimal complete-feedback strategy of Clay, Kuba &amp; Tripathi
+    (<a href="https://arxiv.org/abs/2607.10418" style="color:var(--accent)">arXiv:2607.10418</a>).
+    At every step the app shows the optimal next guess and <code>P(correct | observations)</code>.
+  </div>
+
+  <div class="panel">
+    <label>Deck size n <input id="n" type="number" value="20" min="2" max="200"></label>
+    <label>p <input id="p" type="number" value="0.65" min="0.01" max="0.99" step="0.01"></label>
+    <label>seed <input id="seed" type="number" value="1" min="0"></label>
+    <button id="new">New game</button>
+    <button id="showdeck" class="ghost">Show / hide full deck</button>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <div class="col">
+        <div><b>Cards observed</b></div>
+        <div class="card-grid" id="observed"></div>
+        <div id="deckwrap" style="display:none; margin-top:8px;">
+          <div class="hint">Full shuffled deck (top → bottom):</div>
+          <div class="card-grid" id="fulldeck"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div><b>Optimal next guess</b></div>
+        <div class="big" id="optguess">—</div>
+        <div id="optpct" class="hint"></div>
+        <div style="margin-top:10px;">
+          <span class="score">Algorithm: <span id="algo">0</span> / <span id="total">0</span></span><br>
+          <span class="score">You:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="you">0</span> / <span id="total2">0</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div><b>Possible next card (optimal posterior)</b></div>
+    <div id="bars"></div>
+  </div>
+
+  <div class="panel">
+    <div><b>Your move</b></div>
+    <div class="hint">Type any still-unrevealed card, or leave blank to skip. Then reveal the next card.</div>
+    <div style="margin-top:8px;">
+      <input id="yourguess" type="text" placeholder="your guess">
+      <button id="reveal">Reveal next card</button>
+      <button id="autocomplete" class="ghost">Play optimal for me</button>
+    </div>
+    <div id="feedback" style="margin-top:10px; font-weight:600;"></div>
+  </div>
+
+  <div class="cite">
+    ShuffleLab is an independent reference implementation / research playground. The underlying mathematics
+    (optimal strategy, exact distribution, mean, variance, CLT, large deviations, phase transitions) is due to
+    Alexander Clay, Markus Kuba and Raghavendra Tripathi,
+    <i>On card guessing after an asymmetric single-shelf shuffle</i>, arXiv:2607.10418 (2026).
+    This page does not constitute an official companion implementation by the authors.
+  </div>
+
+<script>
+// ---------- tiny seeded RNG (mulberry32) ----------
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- asymmetric single-shelf shuffle ----------
+// cards 1..n-1 each go "up" (top) with prob p, else "down" (bottom); card n is the
+// peak. Deck (top->bottom) = [up-cards increasing], n, [down-cards decreasing].
+function singleShelfShuffle(n, p, rng) {
+  const eps = [];
+  for (let j = 1; j <= n - 1; j++) eps.push(rng() < p);
+  const top = [], bottom = [];
+  for (let j = 1; j <= n - 1; j++) (eps[j - 1] ? top : bottom).push(j);
+  bottom.reverse();
+  return top.concat([n], bottom);
+}
+
+// ---------- posterior P(next = k | history) ----------
+function posterior(n, p, revealed) {
+  const q = 1 - p;
+  const seen = new Set(revealed);
+  const rem = [];
+  for (let c = 1; c <= n; c++) if (!seen.has(c)) rem.push(c);
+  if (rem.length === 0) return {};
+  // deterministic phase once the peak n (or n-1) has been revealed
+  if (seen.has(n) || seen.has(n - 1)) {
+    return { [Math.max(...rem)]: 1.0 };
+  }
+  const last = revealed.length ? revealed[revealed.length - 1] : 0;
+  const probs = {};
+  for (const j of rem) {
+    if (j > last && j <= n - 1) probs[j] = Math.pow(q, j - last - 1) * p;
+  }
+  if (!seen.has(n) && rem.includes(n)) probs[n] = Math.pow(q, n - 1 - last);
+  const total = Object.values(probs).reduce((a, b) => a + b, 0);
+  if (total <= 0) return { [Math.max(...rem)]: 1.0 };
+  const out = {};
+  for (const k in probs) out[k] = probs[k] / total;
+  return out;
+}
+
+function optimalGuess(post) {
+  let best = null, bestKey = [-1, -1];
+  for (const k in post) {
+    const key = [post[k], Number(k)];
+    if (key[0] > bestKey[0] || (key[0] === bestKey[0] && key[1] > bestKey[1])) {
+      bestKey = key; best = Number(k);
+    }
+  }
+  return best;
+}
+
+// ---------- game state ----------
+let N, P, RNG, DECK, REVEALED, algoScore, youScore;
+
+function newGame() {
+  N = Math.max(2, parseInt(document.getElementById('n').value));
+  P = Math.min(0.99, Math.max(0.01, parseFloat(document.getElementById('p').value)));
+  const seed = parseInt(document.getElementById('seed').value) || 1;
+  RNG = mulberry32(seed);
+  DECK = singleShelfShuffle(N, P, RNG);
+  REVEALED = [];
+  algoScore = 0; youScore = 0;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('yourguess').value = '';
+  draw();
+}
+
+function draw() {
+  const obs = document.getElementById('observed');
+  obs.innerHTML = '';
+  const peakIdx = DECK.indexOf(N);
+  for (const c of REVEALED) {
+    const d = document.createElement('div');
+    let cls = 'pcard';
+    if (c === N) cls += ' peak';
+    else if (DECK.indexOf(c) < peakIdx) cls += ' up';
+    else cls += ' down';
+    d.className = cls;
+    d.textContent = c;
+    obs.appendChild(d);
+  }
+  document.getElementById('total').textContent = N;
+  document.getElementById('total2').textContent = N;
+  document.getElementById('algo').textContent = algoScore;
+  document.getElementById('you').textContent = youScore;
+
+  const fd = document.getElementById('fulldeck'); fd.innerHTML = '';
+  for (const c of DECK) {
+    const d = document.createElement('div');
+    let cls = 'pcard';
+    if (c === N) cls += ' peak';
+    else if (DECK.indexOf(c) < peakIdx) cls += ' up';
+    else cls += ' down';
+    d.className = cls;
+    fd.appendChild(d);
+  }
+
+  if (REVEALED.length >= N) {
+    document.getElementById('optguess').textContent = '— (deck empty)';
+    document.getElementById('optpct').textContent = '';
+    document.getElementById('bars').innerHTML = '';
+    document.getElementById('feedback').textContent =
+      'Game over — Algorithm ' + algoScore + '/' + N + ', You ' + youScore + '/' + N;
+    document.getElementById('reveal').disabled = true;
+    return;
+  }
+
+  const post = posterior(N, P, REVEALED);
+  const g = optimalGuess(post);
+  document.getElementById('optguess').textContent = '→ ' + g;
+  document.getElementById('optpct').textContent =
+    'P(correct | observations): ' + (post[g] * 100).toFixed(1) + '%';
+
+  const entries = Object.entries(post).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxp = entries.length ? entries[0][1] : 1;
+  const bars = document.getElementById('bars'); bars.innerHTML = '';
+  for (const [k, v] of entries) {
+    const row = document.createElement('div'); row.className = 'bar-row';
+    const lab = document.createElement('div'); lab.className = 'bar-label'; lab.textContent = k;
+    const bar = document.createElement('div'); bar.className = 'bar';
+    bar.style.width = Math.max(2, (v / maxp) * 220) + 'px';
+    const pct = document.createElement('div'); pct.className = 'bar-pct'; pct.textContent = (v * 100).toFixed(1) + '%';
+    row.appendChild(lab); row.appendChild(bar); row.appendChild(pct); bars.appendChild(row);
+  }
+  document.getElementById('reveal').disabled = false;
+}
+
+function revealStep() {
+  if (REVEALED.length >= N) return;
+  const post = posterior(N, P, REVEALED);
+  const opt = optimalGuess(post);
+  const top = DECK[REVEALED.length];
+
+  const raw = document.getElementById('yourguess').value.trim();
+  let youCorrect = false, youGuessed = null;
+  const seen = new Set(REVEALED);
+  if (raw !== '') {
+    youGuessed = parseInt(raw);
+    if (!isNaN(youGuessed) && !seen.has(youGuessed)) youCorrect = (youGuessed === top);
+  }
+
+  const algoCorrect = (opt === top);
+  algoScore += algoCorrect ? 1 : 0;
+  youScore += youCorrect ? 1 : 0;
+
+  REVEALED.push(top);
+  const fb = document.getElementById('feedback');
+  fb.innerHTML =
+    'Revealed <b>' + top + '</b>. ' +
+    'Optimal guessed <b>' + opt + '</b> <span class="' + (algoCorrect ? 'good' : 'bad') + '">' +
+    (algoCorrect ? '✓ correct' : '✗ wrong') + '</span>' +
+    (youGuessed !== null ? ' &nbsp;·&nbsp; You guessed <b>' + youGuessed + '</b> <span class="' +
+      (youCorrect ? 'good' : 'bad') + '">' + (youCorrect ? '✓' : '✗') + '</span>' : '');
+  document.getElementById('yourguess').value = '';
+  draw();
+}
+
+function autoOptimal() {
+  if (REVEALED.length >= N) return;
+  const post = posterior(N, P, REVEALED);
+  document.getElementById('yourguess').value = optimalGuess(post);
+  revealStep();
+}
+
+document.getElementById('new').onclick = newGame;
+document.getElementById('reveal').onclick = revealStep;
+document.getElementById('autocomplete').onclick = autoOptimal;
+document.getElementById('showdeck').onclick = function () {
+  const w = document.getElementById('deckwrap');
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+};
+newGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shelfshuffle"
+version = "0.1.0"
+description = "Computational experiments for probabilistic card-shuffling models and optimal guessing strategies (single-shelf shuffle, complete feedback)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "ShuffleLab contributors" }]
+keywords = [
+    "card-shuffling",
+    "shelf-shuffle",
+    "card-guessing",
+    "probability",
+    "combinatorics",
+    "simulation",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "numpy", "matplotlib"]
+demo = ["streamlit"]
+
+[project.scripts]
+shelfshuffle = "shelfshuffle.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/example/shelfshuffle"
+"arXiv (asymmetric single-shelf shuffle)" = "https://arxiv.org/abs/2607.10418"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

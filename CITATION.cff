@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite the underlying mathematics and, if
+  applicable, this implementation. The optimal strategy, exact distribution,
+  mean, variance, central limit theorem, large-deviation principle and phase
+  transitions implemented here are due to Clay, Kuba and Tripathi
+  (arXiv:2607.10418). This repository is an independent reference
+  implementation / research playground and is not authored by the paper's
+  authors.
+title: "ShuffleLab: a reference implementation and experimentation framework for the single-shelf shuffle and optimal card guessing"
+abstract: >-
+  ShuffleLab implements the asymmetric single-shelf shuffle and the optimal
+  complete-feedback card-guessing strategy of Clay, Kuba and Tripathi, together
+  with Monte-Carlo experiments, exact distributions, and an interactive demo.
+authors:
+  - name: "ShuffleLab contributors"
+license: MIT
+repository-code: "https://github.com/example/shelfshuffle"
+url: "https://github.com/example/shelfshuffle"
+keywords:
+  - card shuffling
+  - shelf shuffle
+  - card guessing
+  - complete feedback
+  - optimal strategy
+references:
+  - type: article
+    title: "On card guessing after an asymmetric single-shelf shuffle"
+    authors:
+      - { family: Clay, given: Alexander }
+      - { family: Kuba, given: Markus }
+      - { family: Tripathi, given: Raghavendra }
+    year: 2026
+    doi: "10.48550/arXiv.2607.10418"
+    url: "https://arxiv.org/abs/2607.10418"
+  - type: article
+    title: "On Card guessing after a single shelf shuffle"
+    authors:
+      - { family: Kuba, given: Markus }
+    year: 2026
+    doi: "10.48550/arXiv.2602.12928"
+    url: "https://arxiv.org/abs/2602.12928"
+  - type: article
+    title: "On the position matrix of single-shelf shuffle and card guessing"
+    authors:
+      - { family: Tripathi, given: Raghavendra }
+    year: 2026
+    doi: "10.48550/arXiv.2602.07920"
+    url: "https://arxiv.org/abs/2602.07920"
