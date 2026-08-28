@@ -57,8 +57,8 @@ If you build on this work, please cite the papers above (see `CITATION.cff`).
 ## Installation
 
 ```bash
-git clone https://github.com/example/shelfshuffle
-cd shelfshuffle
+git clone https://github.com/wuisabel-gif/shufflelab
+cd shufflelab
 pip install -e .            # core is pure Python (no required deps)
 pip install -e ".[dev]"     # numpy + matplotlib for the experiments
 pip install -e ".[demo]"    # streamlit (optional richer demo)
@@ -115,11 +115,15 @@ print(sum(scores) / len(scores)) # ~ empirical mean
 
 ## Interactive web demo
 
-Open **`web/interactive-demo/index.html`** in any browser (no build, no server).
+Open **`docs/index.html`** in any browser (no build, no server) — this is also the
+published GitHub Pages site at **https://wuisabel-gif.github.io/shufflelab/**.
+
 Pick a deck size and `p`, simulate one shuffle, and play against the optimal
 algorithm. After every revealed card the app shows the mathematically optimal
-next guess, `P(correct | observations)`, the running scores, and a bar chart of
-the posterior over possible next cards.
+next guess, `P(correct | observations)`, the running scores, a bar chart of the
+posterior over possible next cards, and a plain-language explanation of the move.
+There is also a "Show how the shuffle is built" view and an "Auto-play optimally"
+button. A copy of the same file lives at `web/interactive-demo/index.html`.
 
 You can also run the Streamlit version (optional): `streamlit run web/interactive-demo/app.py`.
 
